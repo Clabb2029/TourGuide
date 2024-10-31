@@ -95,12 +95,12 @@ public class TourGuideService {
 	}
 
 	public CompletableFuture<VisitedLocation> trackUserLocation(User user) {
-		return CompletableFuture.supplyAsync(() -> {
-			VisitedLocation visitedLocation = gpsUtil.getUserLocation(user.getUserId());
-			user.addToVisitedLocations(visitedLocation);
-			rewardsService.calculateRewards(user);
-			return visitedLocation;
-		}, executorService);
+		return CompletableFuture.supplyAsync(() -> gpsUtil.getUserLocation(user.getUserId()), executorService)
+				.thenCompose(visitedLocation -> {
+					user.addToVisitedLocations(visitedLocation);
+					CompletableFuture<Void> futureReward = rewardsService.calculateRewards(user);
+					return futureReward.thenApply(aVoid -> visitedLocation);
+				});
 	}
 
 	public List<AttractionDTO> getNearByAttractions(VisitedLocation visitedLocation, User user) {
