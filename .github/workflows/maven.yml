@@ -1,0 +1,52 @@
+name: Java CI with Maven
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # Step 1: Source code verification
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: JDK Configuration
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      # Step 3: Dependencies installation
+      - name: Install dependencies
+        run: |
+          mvn install:install-file -Dfile=./libs/gpsUtil.jar -DgroupId=gpsUtil -DartifactId=gpsUtil -Dversion=1.0.0 -Dpackaging=jar
+          mvn install:install-file -Dfile=./libs/RewardCentral.jar -DgroupId=rewardCentral -DartifactId=rewardCentral -Dversion=1.0.0 -Dpackaging=jar
+          mvn install:install-file -Dfile=./libs/TripPricer.jar -DgroupId=tripPricer -DartifactId=tripPricer -Dversion=1.0.0 -Dpackaging=jar
+
+      # Step 4: Project compilation
+      - name: Build with Maven
+        run: mvn -B clean compile
+
+      # Step 5: Tests execution
+      - name: Run tests
+        run: mvn test
+
+      # Step 6: Artifacts building
+      - name: Build artifacts
+        run: mvn package
+
+      # Step 7: Artifacts uploading
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: my-java-artifact
+          path: target/*.jar
