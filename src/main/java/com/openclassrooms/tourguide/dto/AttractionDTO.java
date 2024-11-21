@@ -1,6 +1,5 @@
 package com.openclassrooms.tourguide.dto;
 
-import gpsUtil.location.Attraction;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
