@@ -32,22 +32,16 @@ public class TestPerformance {
 		TourGuideService tourGuideService = new TourGuideService(gpsUtil, rewardsService);
 
 		List<User> allUsers = new ArrayList<>(tourGuideService.getAllUsers());
-		List<CompletableFuture<VisitedLocation>> futureVisitedLocations = new ArrayList<>();
+		List<CompletableFuture<VisitedLocation>> futureVisitedLocations;
 
 		StopWatch stopWatch = new StopWatch();
 		stopWatch.start();
-		for (User user : allUsers) {
-			CompletableFuture<VisitedLocation> futureVisitedLocation = tourGuideService.trackUserLocation(user);
-			futureVisitedLocations.add(futureVisitedLocation);
-		}
+		futureVisitedLocations = allUsers.stream()
+				.map(tourGuideService::trackUserLocation)
+				.toList();
 
-		for(CompletableFuture<VisitedLocation> futureVisitedLocation : futureVisitedLocations) {
-			try {
-				futureVisitedLocation.get();
-			} catch (InterruptedException | ExecutionException e) {
-				e.printStackTrace();
-			}
-		}
+		futureVisitedLocations.forEach(CompletableFuture::join);
+
 		stopWatch.stop();
 		tourGuideService.tracker.stopTracking();
 
@@ -69,24 +63,13 @@ public class TestPerformance {
 		List<User> allUsers = new ArrayList<>(tourGuideService.getAllUsers());
 		allUsers.forEach(u -> u.addToVisitedLocations(new VisitedLocation(u.getUserId(), attraction, new Date())));
 
-		List<CompletableFuture<Void>> futureRewards = new ArrayList<>();
+		List<CompletableFuture<Void>> futureRewards = allUsers.stream()
+				.map(rewardsService::calculateRewards)
+				.toList();
 
-		allUsers.forEach(u -> {
-			CompletableFuture<Void> futureReward = rewardsService.calculateRewards(u);
-			futureRewards.add(futureReward);
-		});
+		futureRewards.forEach(CompletableFuture::join);
+		allUsers.forEach(user -> assertFalse(user.getUserRewards().isEmpty()));
 
-		for (CompletableFuture<Void> futureReward : futureRewards) {
-			try {
-				futureReward.get();
-			} catch (InterruptedException | ExecutionException e) {
-				e.printStackTrace();
-			}
-		}
-
-		for (User user : allUsers) {
-			assertFalse(user.getUserRewards().isEmpty());
-		}
 		stopWatch.stop();
 		tourGuideService.tracker.stopTracking();
 
